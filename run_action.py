@@ -23,13 +23,11 @@ def chunks(lst, n):
 def markdown(s):
     md_chars = "\\`*_{}[]<>()#+-.!|"
 
-
     def escape_chars(s):
         for ch in md_chars:
             s = s.replace(ch, "\\" + ch)
 
         return s
-
 
     def unescape_chars(s):
         for ch in md_chars:
@@ -37,16 +35,10 @@ def markdown(s):
 
         return s
 
-
     # Escape markdown characters
     s = escape_chars(s)
     # Decorate quoted symbols as code
-    s = re.sub(
-        "'([^']*)'",
-        lambda match:
-            "`` " + unescape_chars(match.group(1)) + " ``",
-        s
-    )
+    s = re.sub("'([^']*)'", lambda match: "`` " + unescape_chars(match.group(1)) + " ``", s)
 
     return s
 
@@ -88,9 +80,7 @@ def main():
     repo = os.environ.get("GITHUB_REPOSITORY")
     github_token = os.environ.get("INPUT_GITHUB_TOKEN")
     review_event = (
-        "REQUEST_CHANGES"
-        if os.environ.get("INPUT_REQUEST_CHANGES") == "true"
-        else "COMMENT"
+        "REQUEST_CHANGES" if os.environ.get("INPUT_REQUEST_CHANGES") == "true" else "COMMENT"
     )
     github_api_url = os.environ.get("GITHUB_API_URL")
 
@@ -139,10 +129,7 @@ def main():
             line_tag.replace("@@", "").strip().split()[1].replace("+", "")
             for line_tag in git_line_tags
         ]
-        lines_available_for_comments = [
-            get_lines(change)
-            for change in lines_and_changes
-        ]
+        lines_available_for_comments = [get_lines(change) for change in lines_and_changes]
         lines_available_for_comments = list(
             itertools.chain.from_iterable(lines_available_for_comments)
         )
@@ -187,9 +174,7 @@ def main():
             diagnostic["DiagnosticMessage"]["FilePath"]
         )
         for replacement in diagnostic["DiagnosticMessage"]["Replacements"]:
-            replacement["FilePath"] = replacement["FilePath"].replace(
-                repository_root, ""
-            )
+            replacement["FilePath"] = replacement["FilePath"].replace(repository_root, "")
             replacement["FilePath"] = posixpath.normpath(replacement["FilePath"])
     # Create a separate diagnostic entry for each replacement entry, if any
     clang_tidy_diagnostics = list()
@@ -227,17 +212,14 @@ def main():
         unique_diagnostics.add(unique_combo)
     # Remove the duplicates
     clang_tidy_diagnostics[:] = [
-        diagnostic
-        for diagnostic in clang_tidy_diagnostics
-        if not diagnostic["Duplicate"]
+        diagnostic for diagnostic in clang_tidy_diagnostics if not diagnostic["Duplicate"]
     ]
 
     # Remove entries we cannot comment on as the files weren't changed in this pull request
     clang_tidy_diagnostics[:] = [
         diagnostic
         for diagnostic in clang_tidy_diagnostics
-        if diagnostic["FilePath"]
-        in files_and_lines_available_for_comments.keys()
+        if diagnostic["FilePath"] in files_and_lines_available_for_comments.keys()
     ]
 
     if len(clang_tidy_diagnostics) == 0:
@@ -250,9 +232,7 @@ def main():
         file_path = diagnostic["FilePath"]
         line_number = 0
         suggestion = ""
-        with open(
-            repository_root + file_path
-        ) as source_file:
+        with open(repository_root + file_path) as source_file:
             character_counter = 0
             for source_file_line in source_file:
                 character_counter += len(source_file_line)
@@ -265,9 +245,9 @@ def main():
                         replacement_begin = diagnostic["FileOffset"] - beginning_of_line
                         replacement_end = replacement_begin + diagnostic["ReplacementLength"]
                         source_file_line = (
-                            source_file_line[: replacement_begin]
+                            source_file_line[:replacement_begin]
                             + diagnostic["ReplacementText"]
-                            + source_file_line[replacement_end :]
+                            + source_file_line[replacement_end:]
                         )
                         # Make sure the code suggestion ends with a newline character
                         if source_file_line[-1] != "\n":
@@ -334,10 +314,10 @@ def main():
         review_comments = list(
             filter(
                 lambda review_comment: not (
-                    review_comment["path"] == comment["path"] and
-                    review_comment["line"] == comment["line"] and
-                    review_comment["side"] == comment["side"] and
-                    review_comment["body"] == comment["body"]
+                    review_comment["path"] == comment["path"]
+                    and review_comment["line"] == comment["line"]
+                    and review_comment["side"] == comment["side"]
+                    and review_comment["body"] == comment["body"]
                 ),
                 review_comments,
             )
