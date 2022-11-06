@@ -126,6 +126,9 @@ jobs:
         # to avoid GitHub API timeouts for heavily loaded
         # pull requests
         suggestions_per_comment: 10
+        # Optionally set to true if you want the Action to include
+        # non changes lines in case warnings are found
+        include_non_changed_lines: true
 ```
 
 ### Triggering this Action manually

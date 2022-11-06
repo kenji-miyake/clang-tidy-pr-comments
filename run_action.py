@@ -275,7 +275,7 @@ def main():
                     break
         # Ignore comments on lines that were not changed in the pull request
         changed_lines = files_and_lines_available_for_comments[file_path]
-        if line_number in changed_lines:
+        if os.environ.get("INPUT_INCLUDE_NON_CHANGED_LINES") == "true" or line_number in changed_lines:
             review_comment_body = (
                 ":warning: **"
                 + markdown(diagnostic["DiagnosticName"])

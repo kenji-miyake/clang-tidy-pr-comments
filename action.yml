@@ -23,6 +23,10 @@ inputs:
     description: 'The path to repo when code is analyzed with clang-tidy; may set to "/__w" for users who run clang-tidy in a docker container'
     required: false
     default: '/home/runner/work'
+  include_non_changed_lines:
+    description: 'Include non changed lines'
+    required: false
+    default: 'false'
 
 runs:
   using: 'docker'
