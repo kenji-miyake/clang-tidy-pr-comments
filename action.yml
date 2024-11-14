@@ -23,10 +23,45 @@ inputs:
     description: 'The path to repo when code is analyzed with clang-tidy; may set to "/__w" for users who run clang-tidy in a docker container'
     required: false
     default: '/home/runner/work'
-
+  auto_resolve_conversations:
+    description: 'Automatically resolve conversations when the clang-tidy issues are fixed'
+    required: false
+    default: 'false'
+  python_path:
+    description: 'Path to a Python executable to use; if not set Python will be installed locally'
+    required: false
+    default: ''
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
+  using: 'composite'
+  steps:
+    - name: Setup Python
+      if: ${{ !inputs.python_path }}
+      uses: actions/setup-python@v5
+      id: setup-python
+      with:
+        python-version: 3.11
+        update-environment: false
+    - name: Setup venv
+      run: |
+        "${{ steps.setup-python.outputs.python-path || inputs.python_path }}" -m venv "${GITHUB_ACTION_PATH}/venv"
+      shell: bash
+    - name: Install dependencies
+      run: |
+        "${GITHUB_ACTION_PATH}/venv/bin/python" -m pip install -r "${GITHUB_ACTION_PATH}/requirements.txt"
+      shell: bash
+    - name: Run action
+      run: |
+        "${GITHUB_ACTION_PATH}/action_launcher.bash"
+      shell: bash
+      env:
+        INPUT_GITHUB_TOKEN: ${{ inputs.github_token }}
+        INPUT_CLANG_TIDY_FIXES: ${{ inputs.clang_tidy_fixes }}
+        INPUT_PULL_REQUEST_ID: ${{ inputs.pull_request_id }}
+        INPUT_REQUEST_CHANGES: ${{ inputs.request_changes }}
+        INPUT_SUGGESTIONS_PER_COMMENT: ${{ inputs.suggestions_per_comment }}
+        INPUT_REPO_PATH_PREFIX: ${{ inputs.repo_path_prefix }}
+        INPUT_AUTO_RESOLVE_CONVERSATIONS: ${{ inputs.auto_resolve_conversations }}
+        PULL_REQUEST_ID: ${{ github.event.issue.number || github.event.number || '' }}
 branding:
   icon: 'cpu'
   color: 'green'

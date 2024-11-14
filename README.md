@@ -7,6 +7,10 @@
 [![clang-tidy-12 support]](https://releases.llvm.org/12.0.0/tools/clang/tools/extra/docs/clang-tidy/index.html)
 [![clang-tidy-13 support]](https://releases.llvm.org/13.0.0/tools/clang/tools/extra/docs/clang-tidy/index.html)
 [![clang-tidy-14 support]](https://releases.llvm.org/14.0.0/tools/clang/tools/extra/docs/clang-tidy/index.html)
+[![clang-tidy-15 support]](https://releases.llvm.org/15.0.0/tools/clang/tools/extra/docs/clang-tidy/index.html)
+[![clang-tidy-16 support]](https://releases.llvm.org/16.0.0/tools/clang/tools/extra/docs/clang-tidy/index.html)
+[![clang-tidy-17 support]](https://releases.llvm.org/17.0.1/tools/clang/tools/extra/docs/clang-tidy/index.html)
+[![clang-tidy-18 support]](https://releases.llvm.org/18.1.1/tools/clang/tools/extra/docs/clang-tidy/index.html)
 
 A GitHub Action to post `clang-tidy` warnings and suggestions as review comments on your pull request.
 
@@ -74,6 +78,10 @@ YAML files containing generated fixes by the following `clang-tidy` versions are
 * `clang-tidy-12`
 * `clang-tidy-13`
 * `clang-tidy-14`
+* `clang-tidy-15`
+* `clang-tidy-16`
+* `clang-tidy-17`
+* `clang-tidy-18`
 
 ## How
 
@@ -93,11 +101,20 @@ on: pull_request
 
 jobs:
   clang-tidy:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
+    permissions:
+      pull-requests: write
+      # OPTIONAL: auto-closing conversations requires the `contents` permission
+      contents: write
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
-        fetch-depth: 2
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 0
+    - name: Fetch base branch
+      run: |
+        git remote add upstream "https://github.com/${{ github.event.pull_request.base.repo.full_name }}"
+        git fetch --no-tags --no-recurse-submodules upstream "${{ github.event.pull_request.base.ref }}"
     - name: Install clang-tidy
       run: |
         sudo apt-get update
@@ -110,9 +127,9 @@ jobs:
         mkdir clang-tidy-result
     - name: Analyze
       run: |
-        git diff -U0 HEAD^ | clang-tidy-diff -p1 -path build -export-fixes clang-tidy-result/fixes.yml
+        git diff -U0 "$(git merge-base HEAD "upstream/${{ github.event.pull_request.base.ref }}")" | clang-tidy-diff -p1 -path build -export-fixes clang-tidy-result/fixes.yml
     - name: Run clang-tidy-pr-comments action
-      uses: platisd/clang-tidy-pr-comments@master
+      uses: platisd/clang-tidy-pr-comments@v1
       with:
         # The GitHub token (or a personal access token)
         github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -142,11 +159,20 @@ jobs:
   clang-tidy:
     # Trigger the job only when someone comments: run_clang_tidy
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, 'run_clang_tidy') }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
+    permissions:
+      pull-requests: write
+      # OPTIONAL: auto-closing conversations requires the `contents` permission
+      contents: write
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
-        fetch-depth: 2
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 0
+    - name: Fetch base branch
+      run: |
+        git remote add upstream "https://github.com/${{ github.event.pull_request.base.repo.full_name }}"
+        git fetch --no-tags --no-recurse-submodules upstream "${{ github.event.pull_request.base.ref }}"
     - name: Install clang-tidy
       run: |
         sudo apt-get update
@@ -159,9 +185,9 @@ jobs:
         mkdir clang-tidy-result
     - name: Analyze
       run: |
-        git diff -U0 HEAD^ | clang-tidy-diff -p1 -path build -export-fixes clang-tidy-result/fixes.yml
+        git diff -U0 "$(git merge-base HEAD "upstream/${{ github.event.pull_request.base.ref }}")" | clang-tidy-diff -p1 -path build -export-fixes clang-tidy-result/fixes.yml
     - name: Run clang-tidy-pr-comments action
-      uses: platisd/clang-tidy-pr-comments@master
+      uses: platisd/clang-tidy-pr-comments@v1
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         clang_tidy_fixes: clang-tidy-result/fixes.yml
@@ -182,11 +208,16 @@ on: pull_request
 
 jobs:
   clang-tidy:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
-        fetch-depth: 2
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 0
+    - name: Fetch base branch
+      run: |
+        git remote add upstream "https://github.com/${{ github.event.pull_request.base.repo.full_name }}"
+        git fetch --no-tags --no-recurse-submodules upstream "${{ github.event.pull_request.base.ref }}"
     - name: Install clang-tidy
       run: |
         sudo apt-get update
@@ -199,13 +230,13 @@ jobs:
         mkdir clang-tidy-result
     - name: Analyze
       run: |
-        git diff -U0 HEAD^ | clang-tidy-diff -p1 -path build -export-fixes clang-tidy-result/fixes.yml
+        git diff -U0 "$(git merge-base HEAD "upstream/${{ github.event.pull_request.base.ref }}")" | clang-tidy-diff -p1 -path build -export-fixes clang-tidy-result/fixes.yml
     - name: Save PR metadata
       run: |
-        echo ${{ github.event.number }} > clang-tidy-result/pr-id.txt
-        echo ${{ github.event.pull_request.head.repo.full_name }} > clang-tidy-result/pr-head-repo.txt
-        echo ${{ github.event.pull_request.head.ref }} > clang-tidy-result/pr-head-ref.txt
-    - uses: actions/upload-artifact@v2
+        echo "${{ github.event.number }}" > clang-tidy-result/pr-id.txt
+        echo "${{ github.event.pull_request.head.repo.full_name }}" > clang-tidy-result/pr-head-repo.txt
+        echo "${{ github.event.pull_request.head.sha }}" > clang-tidy-result/pr-head-sha.txt
+    - uses: actions/upload-artifact@v4
       with:
         name: clang-tidy-result
         path: clang-tidy-result/
@@ -224,83 +255,92 @@ jobs:
   clang-tidy-results:
     # Trigger the job only if the previous (insecure) workflow completed successfully
     if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
+    permissions:
+      pull-requests: write
+      # OPTIONAL: auto-closing conversations requires the `contents` permission
+      contents: write
     steps:
     - name: Download analysis results
-      uses: actions/github-script@v3.1.0
+      uses: actions/github-script@v7
       with:
         script: |
-          let artifacts = await github.actions.listWorkflowRunArtifacts({
+          const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              run_id: ${{github.event.workflow_run.id }},
+              run_id: ${{ github.event.workflow_run.id }},
           });
-          let matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+          const matchArtifact = artifacts.data.artifacts.filter((artifact) => {
               return artifact.name == "clang-tidy-result"
           })[0];
-          let download = await github.actions.downloadArtifact({
+          const download = await github.rest.actions.downloadArtifact({
               owner: context.repo.owner,
               repo: context.repo.repo,
               artifact_id: matchArtifact.id,
               archive_format: "zip",
           });
-          let fs = require("fs");
-          fs.writeFileSync("${{github.workspace}}/clang-tidy-result.zip", Buffer.from(download.data));
-    - name: Set environment variables
-      run: |
-        mkdir clang-tidy-result
-        unzip clang-tidy-result.zip -d clang-tidy-result
-        echo "pr_id=$(cat clang-tidy-result/pr-id.txt)" >> $GITHUB_ENV
-        echo "pr_head_repo=$(cat clang-tidy-result/pr-head-repo.txt)" >> $GITHUB_ENV
-        echo "pr_head_ref=$(cat clang-tidy-result/pr-head-ref.txt)" >> $GITHUB_ENV
-    - uses: actions/checkout@v2
-      with:
-        repository: ${{ env.pr_head_repo }}
-        ref: ${{ env.pr_head_ref }}
-        persist-credentials: false
-    - name: Redownload analysis results
-      uses: actions/github-script@v3.1.0
-      with:
-        script: |
-          let artifacts = await github.actions.listWorkflowRunArtifacts({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              run_id: ${{github.event.workflow_run.id }},
-          });
-          let matchArtifact = artifacts.data.artifacts.filter((artifact) => {
-              return artifact.name == "clang-tidy-result"
-          })[0];
-          let download = await github.actions.downloadArtifact({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              artifact_id: matchArtifact.id,
-              archive_format: "zip",
-          });
-          let fs = require("fs");
-          fs.writeFileSync("${{github.workspace}}/clang-tidy-result.zip", Buffer.from(download.data));
+          const fs = require("fs");
+          fs.writeFileSync("${{ github.workspace }}/clang-tidy-result.zip", Buffer.from(download.data));
     - name: Extract analysis results
       run: |
         mkdir clang-tidy-result
-        unzip clang-tidy-result.zip -d clang-tidy-result
+        unzip -j clang-tidy-result.zip -d clang-tidy-result
+    - name: Set environment variables
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const assert = require("node:assert").strict;
+          const fs = require("fs");
+          function exportVar(varName, fileName, regEx) {
+              const val = fs.readFileSync("${{ github.workspace }}/clang-tidy-result/" + fileName, {
+                  encoding: "ascii"
+              }).trimEnd();
+              assert.ok(regEx.test(val), "Invalid value format for " + varName);
+              core.exportVariable(varName, val);
+          }
+          exportVar("PR_ID", "pr-id.txt", /^[0-9]+$/);
+          exportVar("PR_HEAD_REPO", "pr-head-repo.txt", /^[-./0-9A-Z_a-z]+$/);
+          exportVar("PR_HEAD_SHA", "pr-head-sha.txt", /^[0-9A-Fa-f]+$/);
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ env.PR_HEAD_REPO }}
+        ref: ${{ env.PR_HEAD_SHA }}
+        persist-credentials: false
+    - name: Redownload analysis results
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: ${{ github.event.workflow_run.id }},
+          });
+          const matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "clang-tidy-result"
+          })[0];
+          const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: matchArtifact.id,
+              archive_format: "zip",
+          });
+          const fs = require("fs");
+          fs.writeFileSync("${{ github.workspace }}/clang-tidy-result.zip", Buffer.from(download.data));
+    - name: Extract analysis results
+      run: |
+        mkdir clang-tidy-result
+        unzip -j clang-tidy-result.zip -d clang-tidy-result
     - name: Run clang-tidy-pr-comments action
-      uses: platisd/clang-tidy-pr-comments@master
+      uses: platisd/clang-tidy-pr-comments@v1
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         clang_tidy_fixes: clang-tidy-result/fixes.yml
-        pull_request_id: ${{ env.pr_id }}
+        pull_request_id: ${{ env.PR_ID }}
 ```
 
 ## Who's using this action?
 
-Are you using this action in your project? Got some interesting use case?<br>
-Add your project to the list below by opening a pull request or asking for it on an issue.
-
-| Project                                                                                                        | Workflow       |
-|----------------------------------------------------------------------------------------------------------------|----------------|
-| [Cura](https://github.com/Ultimaker/Cura/blob/main/.github/workflows/printer-linter-pr-post.yml)               | printer-linter |
-| [Orbit](https://github.com/google/orbit/blob/main/.github/workflows/report-build-and-test.yml)                 | CMake + Qt     |
-| [Smartcar shield](https://github.com/platisd/smartcar_shield/blob/master/.github/workflows/tests.yml)          | CMake          |
-| [cpp-command-parser](https://github.com/platisd/cpp-command-parser/blob/main/.github/workflows/clang-tidy.yml) | CMake          |
+See the [Action dependency graph](https://github.com/platisd/clang-tidy-pr-comments/network/dependents).
 
 [clang-tidy-8 support]: https://img.shields.io/badge/clang--tidy-8-green
 [clang-tidy-9 support]: https://img.shields.io/badge/clang--tidy-9-green
@@ -309,3 +349,7 @@ Add your project to the list below by opening a pull request or asking for it on
 [clang-tidy-12 support]: https://img.shields.io/badge/clang--tidy-12-green
 [clang-tidy-13 support]: https://img.shields.io/badge/clang--tidy-13-green
 [clang-tidy-14 support]: https://img.shields.io/badge/clang--tidy-14-green
+[clang-tidy-15 support]: https://img.shields.io/badge/clang--tidy-15-green
+[clang-tidy-16 support]: https://img.shields.io/badge/clang--tidy-16-green
+[clang-tidy-17 support]: https://img.shields.io/badge/clang--tidy-17-green
+[clang-tidy-18 support]: https://img.shields.io/badge/clang--tidy-18-green
